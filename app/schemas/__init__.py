@@ -1,7 +1,16 @@
-# schemas definiują strukturę danych używaną w żądaniach i odpowiedziach API, zapewniając walidację i serializację danych.
+# schemas define the structure of data used in API requests and responses, providing data validation and serialization.
+from app.schemas.user import UserCreate, UserOut, Token, LoginRequest
 from app.schemas.resource import ResourceCreate, ResourceOut
+from app.schemas.reservation import ReservationCreate, ReservationUpdate, ReservationOut
 
 __all__ = [
+    "UserCreate",
+    "UserOut",
+    "Token",
+    "LoginRequest",
     "ResourceCreate",
     "ResourceOut",
+    "ReservationCreate",
+    "ReservationUpdate",
+    "ReservationOut",
 ]

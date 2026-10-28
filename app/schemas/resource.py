@@ -1,12 +1,13 @@
-from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ResourceBase(BaseModel):
     name: str = Field(..., min_length=2, max_length=50)
-    type: str = Field(..., pattern="^(desk|room)$")
+    type: Literal["desk", "room"]
     capacity: int = Field(default=1, ge=1)
-    location: Optional[str] = "Piętro 1"
+    location: str = Field(default="Floor 1", min_length=1, max_length=100)
 
 
 class ResourceCreate(ResourceBase):
@@ -16,5 +17,4 @@ class ResourceCreate(ResourceBase):
 class ResourceOut(ResourceBase):
     id: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

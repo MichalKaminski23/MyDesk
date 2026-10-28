@@ -1,1 +1,1 @@
-# services definiują logikę biznesową aplikacji, przetwarzając dane i interakcje między różnymi komponentami systemu.
+# services define the business logic of the application, processing data and interactions between different components of the system.

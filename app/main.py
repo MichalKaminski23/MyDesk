@@ -1,9 +1,10 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base
 from app.config import settings
-from app.routers import resources
+import app.models
+from app.routers import auth, resources, reservations
 from app.seed import seed_data
 
 
@@ -16,7 +17,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="MyDesk API",
-    description="System Rezerwacji Biurek i Sal Konferencyjnych",
+    description="Desk and rooms reservation system.",
     version="1.0.0",
     lifespan=lifespan,
 )
@@ -30,9 +31,11 @@ app.add_middleware(
 )
 
 
-@app.get("/health", status_code=200, tags=["Status"])
+@app.get("/health", status_code=status.HTTP_200_OK)
 def health_check():
     return {"status": "ok"}
 
 
+app.include_router(auth.router)
 app.include_router(resources.router)
+app.include_router(reservations.router)

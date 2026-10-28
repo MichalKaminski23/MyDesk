@@ -10,7 +10,7 @@ class Resource(Base):
     )
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, unique=True, index=True, nullable=False)
-    type = Column(String, nullable=False)  # "desk" lub "room"
-    capacity = Column(Integer, default=1)
-    location = Column(String, default="Piętro 1")
+    name = Column(String(50), unique=True, index=True, nullable=False)
+    type = Column(String(5), nullable=False)
+    capacity = Column(Integer, default=1, nullable=False)
+    location = Column(String(100), default="Floor 1", nullable=False)

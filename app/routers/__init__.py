@@ -1,1 +1,1 @@
-# routers służą do definiowania punktów końcowych API i obsługi żądań HTTP.
+# routers define API endpoints and handle HTTP requests.
