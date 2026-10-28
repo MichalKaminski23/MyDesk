@@ -3,11 +3,17 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.user import User
-from app.schemas.reservation import ReservationCreate, ReservationUpdate, ReservationOut
+from app.schemas.reservation import (
+    RecurringReservationCreate,
+    ReservationCreate,
+    ReservationUpdate,
+    ReservationOut,
+)
 from app.security import get_current_user
 from app.services.reservation_service import (
     cancel_reservation as cancel_reservation_service,
     create_reservation as create_reservation_service,
+    create_recurring_reservations,
     list_user_reservations,
     update_reservation as update_reservation_service,
 )
@@ -35,6 +41,23 @@ def create_reservation(
         reservation_in.resource_id,
         reservation_in.start_time,
         reservation_in.end_time,
+    )
+
+
+@router.post("/recurring", response_model=list[ReservationOut], status_code=status.HTTP_201_CREATED)
+def create_recurring_reservation(
+    reservation_in: RecurringReservationCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return create_recurring_reservations(
+        db,
+        current_user,
+        reservation_in.resource_id,
+        reservation_in.start_time,
+        reservation_in.end_time,
+        reservation_in.weekdays,
+        reservation_in.repeat_until,
     )
 
 

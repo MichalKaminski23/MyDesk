@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -19,6 +19,21 @@ class ReservationBase(BaseModel):
 
 class ReservationCreate(ReservationBase):
     pass
+
+
+class RecurringReservationCreate(ReservationBase):
+    weekdays: list[int] = Field(..., min_length=1, max_length=7)
+    repeat_until: date
+
+    @model_validator(mode="after")
+    def validate_recurrence(self):
+        if any(day < 0 or day > 6 for day in self.weekdays):
+            raise ValueError("Weekdays must be between 0 (Monday) and 6 (Sunday).")
+        if len(set(self.weekdays)) != len(self.weekdays):
+            raise ValueError("Weekdays cannot repeat.")
+        if self.repeat_until < self.start_time.date():
+            raise ValueError("Repeat end date must not be before start date.")
+        return self
 
 
 class ReservationUpdate(BaseModel):

@@ -1,1 +1,1 @@
-# aktualnie puste
+# actually null

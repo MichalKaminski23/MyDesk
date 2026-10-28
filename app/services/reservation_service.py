@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime, timedelta
 
 from fastapi import HTTPException, status
 from sqlalchemy import and_
@@ -68,6 +68,52 @@ def create_reservation(
     db.commit()
     db.refresh(reservation)
     return reservation
+
+
+def create_recurring_reservations(
+    db: Session,
+    current_user: User,
+    resource_id: int,
+    start_time: datetime,
+    end_time: datetime,
+    weekdays: list[int],
+    repeat_until: date,
+) -> list[Reservation]:
+    _get_resource(db, resource_id)
+    duration = end_time - start_time
+    occurrences = []
+    current_date = start_time.date()
+    while current_date <= repeat_until:
+        if current_date.weekday() in weekdays:
+            occurrence_start = datetime.combine(current_date, start_time.time())
+            occurrence_end = occurrence_start + duration
+            if _find_conflict(db, resource_id, occurrence_start, occurrence_end):
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"Resource is already booked on {current_date}.",
+                )
+            occurrences.append(
+                Reservation(
+                    user_id=current_user.id,
+                    resource_id=resource_id,
+                    start_time=occurrence_start,
+                    end_time=occurrence_end,
+                    status="active",
+                )
+            )
+        current_date += timedelta(days=1)
+
+    if not occurrences:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="No occurrence matches the selected weekdays.",
+        )
+
+    db.add_all(occurrences)
+    db.commit()
+    for reservation in occurrences:
+        db.refresh(reservation)
+    return occurrences
 
 
 def update_reservation(
