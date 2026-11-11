@@ -162,7 +162,7 @@ sh ./test-all.sh
 Tylko backend:
 
 ```sh
-sh ./test-backend.sh
+sh ./test-app.sh
 ```
 
 Tylko frontend:
