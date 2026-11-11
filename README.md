@@ -114,6 +114,15 @@ Invoke-RestMethod `
 
 Zalogowany użytkownik może pobrać własne dane przez `GET /api/auth/me`.
 
+## Testy backendu i bazy danych
+
+```sh
+python -m pip install -r requirements-test.txt
+python -m unittest discover -s tests -t . -v
+```
+
+Testy korzystają z osobnej bazy SQLite w pamięci i sprawdzają ograniczenia tabel oraz odpowiedzi API rezerwacji.
+
 ## Frontend React
 
 Interfejs w katalogu `frontend/` korzysta z React, TypeScript i Vite. Wymaga Node.js 22.12+ oraz npm. Uruchom backend przez `sh ./start.sh`, a w drugim terminalu:

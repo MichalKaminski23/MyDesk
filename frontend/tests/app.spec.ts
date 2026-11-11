@@ -78,6 +78,86 @@ test('invalid time range does not query availability', async ({ page }) => {
   expect(url.searchParams.get('start_time')).toBe(`${date}T08:00:00`);
 });
 
+test('office map opens the chosen available desk after login', async ({ page }) => {
+  await setup(page);
+  await page.getByRole('button', { name: 'Mapa biura' }).click();
+  const map = page.getByRole('region', { name: 'Schemat biura' });
+  await expect(map).toContainText('Liczba biurek w biurze: 2');
+  const occupied = map.getByRole('button', { name: 'Biurko A2 Zajęte' });
+  const position = await occupied.boundingBox();
+  await page.getByLabel('Tylko dostępne').check();
+  await expect(map).toContainText('Liczba biurek w biurze: 2');
+  await expect(occupied).toHaveClass(/filtered-out/);
+  expect(await occupied.boundingBox()).toEqual(position);
+  await page.getByLabel('Tylko dostępne').uncheck();
+  await expect(occupied).toBeDisabled();
+  await map.getByRole('button', { name: 'Biurko A1 Wolne' }).click();
+
+  const loginDialog = page.getByRole('dialog', { name: 'Logowanie' });
+  await loginDialog.getByLabel('Służbowy adres e-mail').fill('jan@example.com');
+  await loginDialog.getByLabel('Hasło', { exact: true }).fill('Password123!');
+  await loginDialog.getByRole('button', { name: 'Zaloguj się' }).click();
+
+  const bookingDialog = page.getByRole('dialog');
+  await expect(bookingDialog).toContainText('Biurko A1');
+  await expect(bookingDialog.getByRole('button', { name: 'Potwierdź rezerwację' })).toBeVisible();
+});
+
+test('zoomed office map pans without selecting the desk under the pointer', async ({ page }) => {
+  await setup(page);
+  await page.getByRole('button', { name: 'Mapa biura' }).click();
+  const viewport = page.getByRole('region', { name: 'Przewijany rzut biura' });
+  const mapHeight = await viewport.evaluate(element => element.getBoundingClientRect().height);
+  await page.getByRole('button', { name: 'Przybliż mapę' }).click();
+  await expect(page.getByRole('button', { name: /obecnie 125%/ })).toBeVisible();
+  expect(await viewport.evaluate(element => element.getBoundingClientRect().height)).toBe(mapHeight);
+
+  const desk = viewport.getByRole('button', { name: 'Biurko A1 Wolne' });
+  await desk.scrollIntoViewIfNeeded();
+  const bounds = await desk.boundingBox();
+  if (!bounds) throw new Error('Desk is outside the map viewport');
+  const x = bounds.x + bounds.width / 2;
+  const y = bounds.y + bounds.height / 2;
+  const before = await viewport.evaluate(element => element.scrollLeft);
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x - 80, y, { steps: 8 });
+  await page.mouse.up();
+  expect(await viewport.evaluate(element => element.scrollLeft)).toBeGreaterThan(before);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Oddal mapę' }).click();
+  await expect(page.getByRole('button', { name: /obecnie 100%/ })).toBeVisible();
+  await page.getByRole('button', { name: 'Oddal mapę' }).click();
+  await expect(page.getByRole('button', { name: /obecnie 75%/ })).toBeVisible();
+  expect(await viewport.evaluate(element => element.getBoundingClientRect().height)).toBe(mapHeight);
+  await page.getByRole('button', { name: /Przywróć widok mapy/ }).click();
+
+  await viewport.scrollIntoViewIfNeeded();
+  const surface = await viewport.boundingBox();
+  if (!surface) throw new Error('Map viewport is not visible');
+  const anchor = { x: surface.x + 150, y: surface.y + 1 };
+  const pointOnPlan = () => viewport.locator('.office-map-plan').evaluate((plan, point) => {
+    const rect = plan.getBoundingClientRect();
+    const zoom = Number(getComputedStyle(plan).zoom);
+    return { x: (point.x - rect.left) / zoom, y: (point.y - rect.top) / zoom };
+  }, anchor);
+  const point = await pointOnPlan();
+  await page.mouse.move(anchor.x, anchor.y);
+  await page.mouse.wheel(0, -100);
+  await expect(page.getByRole('button', { name: /obecnie 122%/ })).toBeVisible();
+  const zoomedPoint = await pointOnPlan();
+  expect(Math.abs(zoomedPoint.x - point.x)).toBeLessThan(2);
+  expect(Math.abs(zoomedPoint.y - point.y)).toBeLessThan(2);
+
+  const scrollLeft = await viewport.evaluate(element => element.scrollLeft);
+  await page.route('**/api/resources/availability?*', route => route.fulfill({ json: [resources[1]] }));
+  await page.getByRole('button', { name: 'Sprawdź dostępność' }).click();
+  await expect(viewport.getByRole('button', { name: 'Biurko A1 Zajęte' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /obecnie 122%/ })).toBeVisible();
+  expect(await viewport.evaluate(element => element.scrollLeft)).toBe(scrollLeft);
+});
+
 test('login and create recurring reservation with backend weekday format', async ({ page }) => {
   await setup(page); await login(page);
   await page.getByRole('button', { name: 'Zarezerwuj', exact: true }).first().click();

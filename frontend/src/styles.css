@@ -83,6 +83,59 @@ main { max-width: 1240px; margin: 0 auto; padding: 36px 32px 56px; }
 .section-heading, .page-heading { margin-bottom: 24px; }
 .section-heading p, .page-heading p { margin-top: 8px; }
 
+.catalog-heading { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 14px; }
+.catalog-view { display: inline-flex; gap: 3px; padding: 3px; border: 1px solid var(--line); border-radius: 6px; background: white; }
+.catalog-view button { display: flex; align-items: center; gap: 6px; min-height: 36px; padding: 6px 12px; border-radius: 4px; background: transparent; color: var(--muted); font-size: 13px; }
+.catalog-view button:hover, .catalog-view button[aria-pressed=true] { background: #eaf1ed; color: var(--green); }
+.office-map { background: white; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.office-map-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--line); }
+.office-map-header h2 { font-size: 17px; }
+.office-map-header p { margin-top: 3px; }
+.office-map-legend { display: flex; gap: 16px; }
+.office-map-legend .occupied { color: #a12b31; }
+.office-map-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.office-map-zoom { display: flex; align-items: center; border: 1px solid var(--line); border-radius: 5px; }
+.office-map-zoom .zoom-value { width: 52px; font-size: 12px; font-variant-numeric: tabular-nums; }
+.office-map-viewport {
+  height: clamp(280px, 58svh, 560px);
+  overflow: auto;
+  overflow-anchor: none;
+  scrollbar-gutter: stable;
+  container-type: inline-size;
+  background-color: #eff3f0;
+  background-image: linear-gradient(#dfe7e1 1px, transparent 1px), linear-gradient(90deg, #dfe7e1 1px, transparent 1px);
+  background-size: calc(16px * var(--map-scale)) calc(16px * var(--map-scale));
+  background-attachment: local;
+  cursor: grab;
+}
+.office-map-viewport:focus-visible { outline-offset: -3px; }
+.office-map-viewport.is-panning, .office-map-viewport.is-panning button { cursor: grabbing; }
+.office-map-plan, .office-map-zoom { user-select: none; }
+.office-map-plan {
+  display: grid;
+  width: 100cqw;
+  zoom: var(--map-scale);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: clamp(12px, 2.5vw, 24px);
+  padding: clamp(12px, 3vw, 26px);
+}
+.office-zone { min-width: 0; padding: 14px; border: 3px solid #879c90; border-radius: 2px; background: #fafcfb; }
+.office-zone h3 { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; font-size: 13px; overflow-wrap: anywhere; }
+.office-zone-places { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 108px), 124px)); gap: 12px; }
+.office-zone-places:not(:has(.desk)) { grid-template-columns: minmax(0, 1fr); }
+.office-place { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-width: 0; padding: 8px; border: 2px solid #8db49a; border-radius: 4px; background: #e4f2e8; color: #24573f; text-align: center; overflow-wrap: anywhere; }
+.office-place.desk { aspect-ratio: 1; }
+.office-place.room { grid-column: 1 / -1; min-height: 132px; border-radius: 3px; }
+.office-place.room > svg { width: 66px; height: 32px; padding: 3px 16px; border: 1px solid currentColor; border-radius: 12px; }
+.office-place:hover:not(:disabled) { background: #d8eadd; border-color: var(--green); }
+.office-place strong, .office-place small { display: block; }
+.office-place strong { font-size: 12px; }
+.office-place small { font-size: 11px; }
+.office-place.occupied { background: #fde1e2; border-color: #ca646a; color: #8f242b; opacity: 1; }
+.office-place.unknown { background: #f0f2f1; border-color: #bcc6c0; color: #52635a; opacity: 1; }
+.office-place.filtered-out { opacity: .48; }
+.office-map-note { padding: 12px 20px; border-top: 1px solid var(--line); }
+
 .filter-panel { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 16px; padding: 20px; border: 1px solid var(--line); border-radius: 6px; background: white; margin-bottom: 24px; }
 .filter-field, .time-fields { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .filter-panel > div > svg { display: none; }
