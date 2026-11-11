@@ -16,7 +16,9 @@ async function setup(page: Page, role = 'employee') {
     const path = url.pathname;
     const method = route.request().method();
     if (path === '/api/auth/login') return route.fulfill({ json: { access_token: 'test-token', token_type: 'bearer' } });
-    if (path === '/api/auth/me') return route.fulfill({ json: { ...user, role } });
+    if (path === '/api/users/me') return route.fulfill({ json: { ...user, role } });
+    if (path === '/api/users' && method === 'GET') return route.fulfill({ json: [{ ...user, role }] });
+    if (path === '/api/users/me/password' && method === 'PATCH') return route.fulfill({ json: { message: 'Password changed' } });
     if (path === '/api/resources/availability') return route.fulfill({ json: resources.filter(item => item.id !== 2) });
     if (path === '/api/resources') return route.fulfill({ json: method === 'POST' ? { ...route.request().postDataJSON(), id: 4 } : resources });
     if (path === '/api/reservations' && method === 'GET') return route.fulfill({ json: bookings });

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Armchair, ArrowDown, ArrowRight, CalendarCheck2, CalendarDays, Check, ChevronRight, CircleAlert, Clock3, DoorOpen, HelpCircle, LayoutGrid, LoaderCircle, LogIn, LogOut, Map, MapPin, Menu, Pencil, RefreshCw, Search, Settings2, SlidersHorizontal, Users, X } from 'lucide-react';
+import { Armchair, ArrowDown, ArrowRight, CalendarCheck2, CalendarDays, Check, ChevronRight, CircleAlert, Clock3, DoorOpen, HelpCircle, KeyRound, LayoutGrid, LoaderCircle, LogIn, LogOut, Map, MapPin, Menu, Pencil, RefreshCw, Search, Settings2, SlidersHorizontal, Users, X } from 'lucide-react';
 import { api, ApiError } from './api';
-import { AdminPanel, BookingModal, CancelModal, LoginModal } from './Forms';
+import { AdminPanel, BookingModal, CancelModal, LoginModal, PasswordChangeModal } from './Forms';
 import Modal from './Modal';
 import OfficeMap from './OfficeMap';
 import type { Reservation, Resource, TimeFilter, User, View } from './types';
@@ -15,6 +15,8 @@ export default function App() {
   const [sessionError, setSessionError] = useState('');
   const [sessionAttempt, setSessionAttempt] = useState(0);
   const [loginOpen, setLoginOpen] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [resources, setResources] = useState<Resource[]>([]);
@@ -41,14 +43,14 @@ export default function App() {
 
   function logout() {
     sessionStorage.removeItem('mydesk-token'); setToken(null); setUser(null);
-    setReservations([]); setBooking(null); setCancel(null); setView('spaces');
+    setReservations([]); setBooking(null); setCancel(null); setProfileOpen(false); setView('spaces');
   }
 
   useEffect(() => {
     if (!token) { setSessionLoading(false); setSessionError(''); return; }
     let current = true;
     setSessionLoading(true); setSessionError('');
-    api<User>('/auth/me', {}, token).then(data => { if (current) setUser(data); }).catch(e => {
+    api<User>('/users/me', {}, token).then(data => { if (current) setUser(data); }).catch(e => {
       if (!current) return;
       if (e instanceof ApiError && (e.status === 401 || e.status === 403)) {
         sessionStorage.removeItem('mydesk-token'); setToken(null); setUser(null);
@@ -125,7 +127,7 @@ export default function App() {
     <aside className={`sidebar ${mobileOpen ? 'is-open' : ''}`}>
       <a className="brand" href="#" onClick={event => { event.preventDefault(); navigate('spaces'); }} aria-label="MyDesk — strona główna"><span className="brand-mark"><Armchair size={23} strokeWidth={1.7} /></span><span>MyDesk</span></a>
       <nav aria-label="Menu główne">{navItems.map(item => <button key={item.id} className={`nav-item ${view === item.id ? 'active' : ''}`} onClick={() => navigate(item.id)} aria-current={view === item.id ? 'page' : undefined}><item.icon size={20} /><span>{item.label}</span>{item.id === 'reservations' && user && activeReservations.length > 0 && <span className="nav-count">{activeReservations.length}</span>}</button>)}</nav>
-      <div className="sidebar-bottom"><button className="nav-item help-button" onClick={() => setHelpOpen(true)}><HelpCircle size={19} />Jak to działa?<ArrowRight size={16} /></button><div className="sidebar-profile"><span className="avatar">{user ? `${user.name[0]}${user.surname[0]}` : <Users size={18} />}</span><div><strong>{user ? `${user.name} ${user.surname}` : 'Tryb gościa'}</strong><span>{user?.role === 'admin' ? 'Administrator' : user ? 'Pracownik' : 'Niezalogowany'}</span></div><button className="icon-button" title={user ? 'Wyloguj się' : 'Zaloguj się'} aria-label={user ? 'Wyloguj się' : 'Zaloguj się'} disabled={sessionLoading} onClick={() => user ? logout() : setLoginOpen(true)}>{user ? <LogOut size={18} /> : <LogIn size={18} />}</button></div></div>
+      <div className="sidebar-bottom"><button className="nav-item help-button" onClick={() => setHelpOpen(true)}><HelpCircle size={19} />Jak to działa?<ArrowRight size={16} /></button><div className="sidebar-profile">{user ? <button className="avatar avatar-button" title="Pokaż moje dane" aria-label="Pokaż moje dane" onClick={() => setProfileOpen(true)}>{user.name[0]}{user.surname[0]}</button> : <span className="avatar"><Users size={18} /></span>}<div><strong>{user ? `${user.name} ${user.surname}` : 'Tryb gościa'}</strong><span>{user?.role === 'admin' ? 'Administrator' : user ? 'Pracownik' : 'Niezalogowany'}</span></div>{user && <button className="icon-button" title="Zmień hasło" aria-label="Zmień hasło" onClick={() => setPasswordOpen(true)}><KeyRound size={17} /></button>}<button className="icon-button" title={user ? 'Wyloguj się' : 'Zaloguj się'} aria-label={user ? 'Wyloguj się' : 'Zaloguj się'} disabled={sessionLoading} onClick={() => user ? logout() : setLoginOpen(true)}>{user ? <LogOut size={18} /> : <LogIn size={18} />}</button></div></div>
     </aside>
 
     <div className="main-shell"><header className="topbar"><div className="breadcrumb"><button className="icon-button mobile-menu" aria-label="Otwórz menu" onClick={() => setMobileOpen(true)}><Menu size={21} /></button><span className="breadcrumb-home">Moje biuro</span><ChevronRight size={14} /><strong>{title}</strong></div><div className="topbar-right"><span className="today"><CalendarDays size={15} />{formatDate(`${localDate()}T12:00:00`, { day: 'numeric', month: 'long', year: 'numeric' })}</span><span className="topbar-divider" />{sessionLoading ? <span className="muted small"><LoaderCircle size={16} className="spin" /> Łączenie…</span> : user ? <span className="header-user"><span className="online-dot" />Cześć, {user.name}!</span> : <button className="button small-button secondary" onClick={() => setLoginOpen(true)}>Zaloguj się<ArrowRight size={15} /></button>}</div></header>
@@ -165,6 +167,8 @@ export default function App() {
       </main>
     </div>
     {loginOpen && <LoginModal onClose={() => { setLoginOpen(false); setBooking(null); }} onLogin={(newToken, newUser) => { sessionStorage.setItem('mydesk-token', newToken); setToken(newToken); setUser(newUser); setLoginOpen(false); setToast(`Zalogowano jako ${newUser.name}.`); }} />}
+    {profileOpen && user && <Modal title="Moje dane" subtitle="Informacje zapisane na Twoim koncie." onClose={() => setProfileOpen(false)}><div className="profile-details"><div><span>Imię i nazwisko</span><strong>{user.name} {user.surname}</strong></div><div><span>Email</span><strong>{user.email}</strong></div><div><span>Numer telefonu</span><strong>{user.phone_number}</strong></div><div><span>Rola</span><strong>{user.role === 'admin' ? 'Administrator' : 'Pracownik'}</strong></div><div><span>Status konta</span><strong>{user.is_active ? 'Aktywne' : 'Nieaktywne'}</strong></div></div></Modal>}
+    {passwordOpen && token && <PasswordChangeModal token={token} onClose={() => setPasswordOpen(false)} onSaved={message => { setPasswordOpen(false); setToast(message); }} />}
     {booking && token && user && <BookingModal {...booking} resources={resources} filter={filter} token={token} onClose={() => setBooking(null)} onSaved={saved} />}
     {cancel && token && user && <CancelModal reservation={cancel} token={token} onClose={() => setCancel(null)} onSaved={saved} />}
     {helpOpen && <Modal title="Jak zarezerwować miejsce?" onClose={() => setHelpOpen(false)}><div className="help-steps">{[{ icon: CalendarDays, title: 'Wybierz termin', text: 'Podaj dzień i godziny wizyty. Dostępność jest sprawdzana dla całego przedziału.' }, { icon: SlidersHorizontal, title: 'Wybierz miejsce', text: 'Przeglądaj biurka i sale. Filtruj lokalizację i wybierz miejsce dla siebie lub zespołu.' }, { icon: CalendarCheck2, title: 'Zarezerwuj i gotowe', text: 'Zaloguj się, potwierdź termin lub ustaw cykl. Rezerwacje możesz edytować i anulować przed rozpoczęciem.' }].map((step, i) => <div key={step.title}><span className="help-step-icon"><step.icon size={21} /></span><div><span className="eyebrow">KROK 0{i + 1}</span><h3>{step.title}</h3><p>{step.text}</p></div></div>)}</div><button className="button primary full-width" onClick={() => { setHelpOpen(false); navigate('spaces'); }}>Przeglądaj miejsca<ArrowRight size={16} /></button></Modal>}

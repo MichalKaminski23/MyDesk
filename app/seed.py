@@ -1,9 +1,9 @@
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
-from app.models.user import User
-from app.models.resource import Resource
-from app.models.reservation import Reservation
+from app.models.user_model import User
+from app.models.resource_model import Resource
+from app.models.reservation_model import Reservation
 from app.security import get_password_hash
 from app.config import settings
 
@@ -19,8 +19,8 @@ def seed_data():
                 admin_user = User(
                     email=settings.SEED_ADMIN_EMAIL,
                     hashed_password=get_password_hash(settings.SEED_ADMIN_PASSWORD),
-                    name="Admin",
-                    surname="Chad",
+                    name="Administrator",
+                    surname="Systemu",
                     phone_number=settings.SEED_ADMIN_PHONE,
                     role="admin",
                     is_active=True,
@@ -32,8 +32,8 @@ def seed_data():
                 employee_user = User(
                     email=settings.SEED_EMPLOYEE_EMAIL,
                     hashed_password=get_password_hash(settings.SEED_EMPLOYEE_PASSWORD),
-                    name="Pracownik",
-                    surname="Sigma",
+                    name="Jan",
+                    surname="Kowalski",
                     phone_number=settings.SEED_EMPLOYEE_PHONE,
                     role="employee",
                     is_active=True,
@@ -45,40 +45,40 @@ def seed_data():
         if not desks_and_rooms:
             desks_and_rooms = [
                 Resource(
-                    name="Desk A1",
+                    name="Biurko A1",
                     type="desk",
                     capacity=1,
-                    location="Silent place - Floor 1",
+                    location="Strefa cicha - Piętro 1",
                 ),
                 Resource(
-                    name="Desk A2",
+                    name="Biurko A2",
                     type="desk",
                     capacity=1,
-                    location="Silent place - Floor 1",
+                    location="Strefa cicha - Piętro 1",
                 ),
                 Resource(
-                    name="Desk B1 (Open Space)",
+                    name="Biurko B1 (Open Space)",
                     type="desk",
                     capacity=1,
-                    location="Open Space - Floor 1",
+                    location="Open Space - Piętro 1",
                 ),
                 Resource(
-                    name="Desk B2 (Open Space)",
+                    name="Biurko B2 (Open Space)",
                     type="desk",
                     capacity=1,
-                    location="Open Space - Floor 1",
+                    location="Open Space - Piętro 1",
                 ),
                 Resource(
-                    name="Conference Room 'Spodek'",
+                    name="Sala konferencyjna „Spodek”",
                     type="room",
                     capacity=6,
-                    location="Left Wing - Floor 1",
+                    location="Lewe skrzydło - Piętro 1",
                 ),
                 Resource(
-                    name="Conference Room 'NOSPR'",
+                    name="Sala konferencyjna „NOSPR”",
                     type="room",
                     capacity=14,
-                    location="Center - Floor 2",
+                    location="Centrum - Piętro 2",
                 ),
             ]
             db.add_all(desks_and_rooms)

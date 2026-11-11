@@ -64,10 +64,17 @@ input[type=checkbox] { accent-color: var(--green); width: 16px; height: 16px; }
 .help-button > svg:last-child { margin-left: auto; }
 .sidebar-profile { display: flex; align-items: center; gap: 9px; border-top: 1px solid var(--line); padding: 18px 0; }
 .avatar { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; background: #edf1ee; color: #52635a; font-size: 12px; flex-shrink: 0; }
+.avatar-button { border: 0; padding: 0; cursor: pointer; }
+.avatar-button:hover { background: #dfe8e1; }
 .sidebar-profile > div { flex: 1; min-width: 0; }
 .sidebar-profile strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 600; }
 .sidebar-profile div > span { display: block; color: var(--muted); font-size: 11px; margin-top: 2px; }
 .sidebar-profile .icon-button { width: 28px; }
+.profile-details { display: grid; gap: 12px; }
+.profile-details div { display: grid; gap: 3px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+.profile-details div:last-child { padding-bottom: 0; border-bottom: 0; }
+.profile-details span { color: var(--muted); font-size: 12px; }
+.profile-details strong { font-size: 14px; font-weight: 600; }
 .main-shell { margin-left: 216px; }
 .topbar { height: 66px; padding: 0 32px; display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--line); background: white; }
 .breadcrumb, .topbar-right, .today, .header-user { display: flex; align-items: center; gap: 10px; }
@@ -209,6 +216,9 @@ main { max-width: 1240px; margin: 0 auto; padding: 36px 32px 56px; }
 .panel { max-width: 720px; border: 1px solid var(--line); border-radius: 6px; background: white; }
 .panel-heading { padding: 24px 24px 16px; }
 .panel-heading p { margin-top: 8px; }
+.user-list { display: grid; gap: 8px; margin-top: 14px; }
+.user-row { display: flex; flex-direction: column; gap: 3px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 4px; background: #fbfcfb; font-size: 12px; }
+.user-row span { color: var(--muted); }
 .admin-tabs { margin: 0 24px; border-bottom: 1px solid var(--line); }
 .admin-form { padding: 24px; }
 

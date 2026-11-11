@@ -4,9 +4,9 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models.reservation import Reservation
-from app.models.resource import Resource
-from app.schemas.resource import ResourceCreate
+from app.models.reservation_model import Reservation
+from app.models.resource_model import Resource
+from app.schemas.resource_schema import ResourceCreate
 
 
 def list_resources(db: Session) -> list[Resource]:

@@ -25,7 +25,7 @@ export function LoginModal({ onClose, onLogin }: { onClose: () => void; onLogin:
       const { access_token } = await api<{ access_token: string }>('/auth/login', {
         method: 'POST', body: new URLSearchParams({ username: String(data.get('email')), password: String(data.get('password')) }),
       });
-      const user = await api<User>('/auth/me', {}, access_token);
+      const user = await api<User>('/users/me', {}, access_token);
       onLogin(access_token, user);
     } catch (e) { setError((e as Error).message); }
     finally { setBusy(false); }
@@ -37,6 +37,30 @@ export function LoginModal({ onClose, onLogin }: { onClose: () => void; onLogin:
       <FormError message={error} />
       <SubmitButton busy={busy}>Zaloguj się</SubmitButton>
       <p className="form-note"><LockKeyhole size={15} /> Nie masz konta? Poproś administratora o dostęp.</p>
+    </form>
+  </Modal>;
+}
+
+export function PasswordChangeModal({ token, onClose, onSaved }: { token: string; onClose: () => void; onSaved: (message: string) => void }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (busy) return;
+    const data = Object.fromEntries(new FormData(event.currentTarget));
+    setBusy(true); setError('');
+    try {
+      await api('/users/me/password', { method: 'PATCH', body: JSON.stringify(data) }, token);
+      onSaved('Hasło zostało zmienione.');
+    } catch (e) { setError((e as Error).message); }
+    finally { setBusy(false); }
+  }
+  return <Modal title="Zmiana hasła" subtitle="Ustaw nowe hasło do swojego konta." onClose={onClose} busy={busy}>
+    <form className="form" onSubmit={submit}>
+      <label>Obecne hasło<input name="current_password" type="password" autoComplete="current-password" required /></label>
+      <label>Nowe hasło<input name="new_password" type="password" autoComplete="new-password" minLength={6} required /></label>
+      <FormError message={error} />
+      <SubmitButton busy={busy}>Zmień hasło</SubmitButton>
     </form>
   </Modal>;
 }
@@ -109,9 +133,10 @@ export function CancelModal({ reservation, token, onClose, onSaved }: { reservat
 }
 
 export function AdminPanel({ token, onSaved }: { token: string; onSaved: (message: string) => void }) {
-  const [tab, setTab] = useState<'user' | 'resource' | 'access'>('user');
+  const [tab, setTab] = useState<'user' | 'resource' | 'access' | 'users'>('user');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [users, setUsers] = useState<User[]>([]);
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (busy) return;
@@ -125,17 +150,23 @@ export function AdminPanel({ token, onSaved }: { token: string; onSaved: (messag
       } else if (tab === 'resource') {
         await api('/resources', { method: 'POST', body: JSON.stringify({ ...data, capacity: Number(data.capacity) }) }, token);
         onSaved('Nowe miejsce zostało dodane do biura.');
+      } else if (tab === 'users') {
+        const search = String(data.search).trim();
+        const result = await api<User[]>(`/users?search=${encodeURIComponent(search)}`, {}, token);
+        setUsers(result);
       } else {
-        const user = await api<User>(`/auth/users/${data.id}/${data.action}`, { method: 'PATCH' }, token);
+        const user = await api<User>(`/users/${data.id}/${data.action}`, { method: 'PATCH' }, token);
+        setUsers(prev => prev.map(item => item.id === user.id ? user : item));
         onSaved(`Konto ${user.email} zostało ${user.is_active ? 'aktywowane' : 'dezaktywowane'}.`);
       }
       form.reset();
     } catch (e) { setError((e as Error).message); }
     finally { setBusy(false); }
   }
-  return <section className="admin-layout"><div className="panel"><div className="panel-heading"><h2>Zarządzanie biurem</h2><p className="muted">Zarządzaj dostępem pracowników i dodawaj nowe miejsca.</p></div><div className="tabs admin-tabs" role="tablist" aria-label="Zarządzanie">{([['user', 'Nowy pracownik'], ['resource', 'Nowe miejsce'], ['access', 'Dostęp do kont']] as const).map(([id, label]) => <button role="tab" aria-selected={tab === id} key={id} disabled={busy} className={tab === id ? 'active' : ''} onClick={() => { setTab(id); setError(''); }}>{label}</button>)}</div>
+  return <section className="admin-layout"><div className="panel"><div className="panel-heading"><h2>Zarządzanie biurem</h2><p className="muted">Zarządzaj dostępem pracowników i dodawaj nowe miejsca.</p></div><div className="tabs admin-tabs" role="tablist" aria-label="Zarządzanie">{([['user', 'Nowy pracownik'], ['resource', 'Nowe miejsce'], ['access', 'Dostęp do kont'], ['users', 'Użytkownicy']] as const).map(([id, label]) => <button role="tab" aria-selected={tab === id} key={id} disabled={busy} className={tab === id ? 'active' : ''} onClick={() => { setTab(id); setError(''); setUsers([]); }}>{label}</button>)}</div>
       <form className="form admin-form" key={tab} onSubmit={submit}>
-        {tab === 'user' ? <><div className="form-row"><label>Imię<input name="name" required minLength={2} maxLength={100} autoComplete="off" /></label><label>Nazwisko<input name="surname" required minLength={2} maxLength={100} autoComplete="off" /></label></div><label>E-mail<input name="email" type="email" required /></label><label>Numer telefonu<input name="phone_number" type="tel" required minLength={3} maxLength={30} /></label><label>Hasło początkowe<input name="password" type="password" required minLength={6} maxLength={100} autoComplete="new-password" /></label></> : tab === 'resource' ? <><label>Nazwa miejsca<input name="name" required minLength={2} maxLength={50} placeholder="np. Biurko A3" /></label><div className="form-row"><label>Rodzaj<select name="type"><option value="desk">Biurko</option><option value="room">Sala konferencyjna</option></select></label><label>Liczba osób<input name="capacity" type="number" min={1} defaultValue={1} required /></label></div><label>Lokalizacja<input name="location" required maxLength={100} placeholder="np. Strefa ciszy · Piętro 1" /></label></> : <><p className="muted">Wpisz identyfikator pracownika otrzymany podczas tworzenia konta.</p><label>Identyfikator pracownika<input name="id" type="number" required min={1} /></label><label>Operacja<select name="action"><option value="activate">Aktywuj konto</option><option value="deactivate">Dezaktywuj konto</option></select></label></>}
-        <FormError message={error} /><SubmitButton busy={busy}>{tab === 'user' ? 'Utwórz konto pracownika' : tab === 'resource' ? 'Dodaj miejsce' : 'Zapisz dostęp'}</SubmitButton>
+        {tab === 'user' ? <><div className="form-row"><label>Imię<input name="name" required minLength={2} maxLength={100} autoComplete="off" /></label><label>Nazwisko<input name="surname" required minLength={2} maxLength={100} autoComplete="off" /></label></div><label>E-mail<input name="email" type="email" required /></label><label>Numer telefonu<input name="phone_number" type="tel" required minLength={3} maxLength={30} /></label><label>Hasło początkowe<input name="password" type="password" required minLength={6} maxLength={100} autoComplete="new-password" /></label></> : tab === 'resource' ? <><label>Nazwa miejsca<input name="name" required minLength={2} maxLength={50} placeholder="np. Biurko A3" /></label><div className="form-row"><label>Rodzaj<select name="type"><option value="desk">Biurko</option><option value="room">Sala konferencyjna</option></select></label><label>Liczba osób<input name="capacity" type="number" min={1} defaultValue={1} required /></label></div><label>Lokalizacja<input name="location" required maxLength={100} placeholder="np. Strefa ciszy · Piętro 1" /></label></> : tab === 'access' ? <><p className="muted">Wpisz identyfikator pracownika otrzymany podczas tworzenia konta.</p><label>Identyfikator pracownika<input name="id" type="number" required min={1} /></label><label>Operacja<select name="action"><option value="activate">Aktywuj konto</option><option value="deactivate">Dezaktywuj konto</option></select></label></> : <><p className="muted">Wpisz ID, email, imię albo nazwisko użytkownika.</p><label>Szukaj użytkownika<input name="search" required minLength={1} maxLength={100} autoComplete="off" /></label></>}
+        <FormError message={error} /><SubmitButton busy={busy}>{tab === 'user' ? 'Utwórz konto pracownika' : tab === 'resource' ? 'Dodaj miejsce' : tab === 'access' ? 'Zapisz dostęp' : 'Szukaj użytkowników'}</SubmitButton>
+        {tab === 'users' && users.length > 0 && <div className="user-list">{users.map(item => <div className="user-row" key={item.id}><strong>#{item.id} · {item.name} {item.surname}</strong><span>{item.email} · {item.role === 'admin' ? 'Administrator' : 'Pracownik'} · {item.is_active ? 'Aktywne' : 'Nieaktywne'}</span></div>)}</div>}
       </form></div></section>;
 }

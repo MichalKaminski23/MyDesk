@@ -1,8 +1,8 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.models.user import User
-from app.schemas.user import UserCreate
+from app.models.user_model import User
+from app.schemas.user_schema import UserCreate
 from app.security import create_access_token, get_password_hash, verify_password
 
 
@@ -40,21 +40,3 @@ def login_user(db: Session, email: str, password: str) -> dict[str, str]:
         "access_token": create_access_token(data={"sub": user.email, "role": user.role}),
         "token_type": "bearer",
     }
-
-
-def set_user_active_status(db: Session, user_id: int, is_active: bool) -> User:
-    user = db.query(User).filter(User.id == user_id).first()
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found.",
-        )
-    if user.role == "admin" and not is_active:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="An administrator cannot be deactivated.",
-        )
-    user.is_active = is_active
-    db.commit()
-    db.refresh(user)
-    return user

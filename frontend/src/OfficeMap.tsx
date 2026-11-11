@@ -28,7 +28,6 @@ export default function OfficeMap({ resources, matchingIds, available, sessionLo
     const left = (surface.scrollLeft + anchorX) * ratio - anchorX;
     const top = (surface.scrollTop + anchorY) * ratio - anchorY;
     currentZoom.current = nextZoom;
-    // Resize the scrollable area before applying the new scroll position.
     flushSync(() => setZoom(nextZoom));
     surface.scrollTo(left, top);
   }, []);
@@ -71,7 +70,6 @@ export default function OfficeMap({ resources, matchingIds, available, sessionLo
     const dy = event.clientY - start.y;
     if (!surface.hasPointerCapture(event.pointerId)) {
       if (Math.hypot(dx, dy) < 5) return;
-      // Capture only after movement so a click still selects the desk under the pointer.
       surface.setPointerCapture(event.pointerId);
       surface.classList.add('is-panning');
     }

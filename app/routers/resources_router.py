@@ -4,8 +4,8 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models.user import User
-from app.schemas.resource import ResourceCreate, ResourceOut
+from app.models.user_model import User
+from app.schemas.resource_schema import ResourceCreate, ResourceOut
 from app.security import require_admin
 from app.services.resource_service import (
     create_resource as create_resource_service,

@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base
 from app.config import settings
 import app.models
-from app.routers import auth, resources, reservations
+from app.routers import auth_router, reservations_router, resources_router, user_router
 from app.seed import seed_data
 
 
@@ -36,6 +36,7 @@ def health_check():
     return {"status": "ok"}
 
 
-app.include_router(auth.router)
-app.include_router(resources.router)
-app.include_router(reservations.router)
+app.include_router(auth_router.router)
+app.include_router(resources_router.router)
+app.include_router(reservations_router.router)
+app.include_router(user_router.router)

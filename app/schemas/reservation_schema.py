@@ -2,7 +2,7 @@ from datetime import date, datetime
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
-from app.schemas.resource import ResourceOut
+from app.schemas.resource_schema import ResourceOut
 
 
 class ReservationBase(BaseModel):
