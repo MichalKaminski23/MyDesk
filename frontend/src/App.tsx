@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Armchair, ArrowDown, ArrowRight, CalendarCheck2, CalendarDays, Check, ChevronRight, CircleAlert, Clock3, DoorOpen, HelpCircle, LayoutGrid, LoaderCircle, LogIn, LogOut, MapPin, Menu, Pencil, RefreshCw, Search, Settings2, SlidersHorizontal, Users, X } from 'lucide-react';
+import { Armchair, ArrowDown, ArrowRight, CalendarCheck2, CalendarDays, Check, ChevronRight, CircleAlert, Clock3, DoorOpen, HelpCircle, LayoutGrid, LoaderCircle, LogIn, LogOut, Map, MapPin, Menu, Pencil, RefreshCw, Search, Settings2, SlidersHorizontal, Users, X } from 'lucide-react';
 import { api, ApiError } from './api';
 import { AdminPanel, BookingModal, CancelModal, LoginModal } from './Forms';
 import Modal from './Modal';
+import OfficeMap from './OfficeMap';
 import type { Reservation, Resource, TimeFilter, User, View } from './types';
 import { formatDate, formatTime, initialFilter, localDate, timeRange } from './utils';
 
@@ -31,6 +32,7 @@ export default function App() {
   const [location, setLocation] = useState('all');
   const [query, setQuery] = useState('');
   const [onlyAvailable, setOnlyAvailable] = useState(false);
+  const [catalogView, setCatalogView] = useState<'list' | 'map'>('list');
   const [sort, setSort] = useState('available');
   const [booking, setBooking] = useState<{ resource: Resource; reservation?: Reservation } | null>(null);
   const [cancel, setCancel] = useState<Reservation | null>(null);
@@ -90,6 +92,11 @@ export default function App() {
 
   function navigate(next: View) { setView(next); setMobileOpen(false); }
   function saved(message: string) { setBooking(null); setCancel(null); setToast(message); setRevision(value => value + 1); }
+  function selectResource(resource: Resource) {
+    setBooking({ resource });
+    if (!user) setLoginOpen(true);
+  }
+
   function applyFilter() {
     if (!draft.date || !draft.start || !draft.end) return setFilterError('Uzupełnij datę i godziny.');
     if (draft.end <= draft.start) return setFilterError('Godzina zakończenia musi być późniejsza od rozpoczęcia.');
@@ -102,6 +109,7 @@ export default function App() {
     (type === 'all' || item.type === type) && (location === 'all' || item.location === location) &&
     (!onlyAvailable || available.has(item.id)) && `${item.name} ${item.location}`.toLocaleLowerCase('pl').includes(query.toLocaleLowerCase('pl')),
   ).sort((a, b) => sort === 'capacity' ? b.capacity - a.capacity : sort === 'name' ? a.name.localeCompare(b.name, 'pl') : Number(available.has(b.id)) - Number(available.has(a.id)) || a.id - b.id), [resources, available, type, location, query, onlyAvailable, sort]);
+  const showMap = catalogView === 'map' && resources.length > 0;
   const activeReservations = reservations.filter(item => item.status === 'active' && new Date(item.end_time) > new Date()).sort((a, b) => a.start_time.localeCompare(b.start_time));
   const shownReservations = reservations.filter(item => reservationTab === 'cancelled' ? item.status === 'cancelled' : item.status === 'active' && (reservationTab === 'upcoming' ? new Date(item.end_time) > new Date() : new Date(item.end_time) <= new Date())).sort((a, b) => reservationTab === 'upcoming' ? a.start_time.localeCompare(b.start_time) : b.start_time.localeCompare(a.start_time));
   const navItems = [
@@ -125,13 +133,26 @@ export default function App() {
       <main id="main">
         {sessionError && <div className="session-error" role="alert"><CircleAlert size={18} /><span>Nie udało się przywrócić sesji. {sessionError}</span><button onClick={() => setSessionAttempt(value => value + 1)}>Ponów</button><button onClick={logout}>Kontynuuj jako gość</button></div>}
         {view === 'spaces' ? <>
-          <section className="spaces-section" aria-labelledby="spaces-title"><div className="section-heading"><div><h1 id="spaces-title">Biurka i sale</h1><p className="muted">Wybierz termin i sprawdź dostępne miejsca.</p></div></div>
+          <section className="spaces-section" aria-labelledby="spaces-title"><div className="section-heading catalog-heading">
+            <div><h1 id="spaces-title">Biurka i sale</h1><p className="muted">Wybierz termin i sprawdź dostępne miejsca.</p></div>
+            <div className="catalog-view" role="group" aria-label="Widok miejsc">
+              <button type="button" aria-pressed={catalogView === 'list'} onClick={() => setCatalogView('list')}><LayoutGrid size={16} aria-hidden="true" />Lista</button>
+              <button type="button" aria-pressed={catalogView === 'map'} onClick={() => setCatalogView('map')}><Map size={16} aria-hidden="true" />Mapa biura</button>
+            </div>
+          </div>
             <form className="filter-panel" onSubmit={event => { event.preventDefault(); applyFilter(); }}><div className="date-field filter-field"><CalendarDays size={19} /><label>Data<input aria-label="Data dostępności" type="date" min={localDate()} required value={draft.date} onChange={event => setDraft({ ...draft, date: event.target.value })} /></label></div><div className="time-fields"><Clock3 size={19} /><label>Od<input aria-label="Godzina rozpoczęcia" type="time" required value={draft.start} onChange={event => setDraft({ ...draft, start: event.target.value })} /></label><span className="time-dash">—</span><label>Do<input aria-label="Godzina zakończenia" type="time" required value={draft.end} onChange={event => setDraft({ ...draft, end: event.target.value })} /></label></div><div className="filter-field location-field"><MapPin size={19} /><label>Lokalizacja<select aria-label="Lokalizacja" value={location} onChange={event => setLocation(event.target.value)}><option value="all">Wszystkie lokalizacje</option>{locations.map(item => <option key={item}>{item}</option>)}</select></label></div><button className="button primary search-button" type="submit"><Search size={17} />Sprawdź dostępność</button></form>
             {filterError && <p className="inline-error" role="alert">{filterError}</p>}
             {(draft.date !== filter.date || draft.start !== filter.start || draft.end !== filter.end) && <p className="filter-hint">Zmieniono termin. Kliknij „Sprawdź dostępność”, aby odświeżyć wyniki.</p>}
             <div className="catalog-toolbar"><div className="tabs" role="tablist" aria-label="Rodzaj miejsca">{([{ id: 'all', label: 'Wszystkie miejsca', icon: LayoutGrid }, { id: 'desk', label: 'Biurka', icon: Armchair }, { id: 'room', label: 'Sale konferencyjne', icon: DoorOpen }] as const).map(item => <button key={item.id} role="tab" aria-selected={type === item.id} className={type === item.id ? 'active' : ''} onClick={() => setType(item.id)}><item.icon size={16} />{item.label}<span>{item.id === 'all' ? resources.length : resources.filter(resource => resource.type === item.id).length}</span></button>)}</div><label className="availability-toggle"><input type="checkbox" checked={onlyAvailable} onChange={event => setOnlyAvailable(event.target.checked)} />Tylko dostępne</label></div>
-            <div className="results-toolbar"><span className="result-count">{loading ? 'Sprawdzamy dostępność…' : loadError ? 'Dostępność chwilowo niedostępna' : <><strong>{filtered.length}</strong> {filtered.length === 1 ? 'miejsce' : 'miejsc'} <span>· {formatDate(`${filter.date}T12:00:00`)} · {filter.start}–{filter.end}</span></>}</span><div className="results-actions"><label className="inline-search"><Search size={16} /><input aria-label="Szukaj miejsca" placeholder="Szukaj miejsca…" value={query} onChange={event => setQuery(event.target.value)} /></label><label className="sort-select"><ArrowDown size={14} /><select aria-label="Sortowanie" value={sort} onChange={event => setSort(event.target.value)}><option value="available">Dostępne najpierw</option><option value="name">Nazwa A–Z</option><option value="capacity">Najwięcej osób</option></select></label></div></div>
-            {loading ? <div className="resource-grid" aria-busy="true" aria-label="Ładowanie miejsc">{[0, 1, 2, 3, 4, 5].map(i => <div key={i} className="skeleton-card"><div /><span /><span /></div>)}</div> : loadError ? <EmptyState icon={<CircleAlert size={28} />} title="Nie możemy sprawdzić dostępności" text={loadError} action={<button className="button secondary" onClick={() => setRevision(value => value + 1)}><RefreshCw size={16} />Spróbuj ponownie</button>} /> : filtered.length === 0 ? <EmptyState icon={<Search size={28} />} title="Nie znaleźliśmy takiego miejsca" text="Zmień filtry lub wybierz inny termin." action={<button className="button secondary" onClick={() => { setType('all'); setLocation('all'); setOnlyAvailable(false); setQuery(''); }}>Wyczyść filtry</button>} /> : <div className="resource-grid">{filtered.map(resource => <article className="resource-card" key={resource.id}><div className="card-content"><div className="card-meta"><span className="resource-type">{resource.type === 'room' ? 'Sala konferencyjna' : 'Biurko'}</span><span className={`availability-badge ${available.has(resource.id) ? 'free' : 'occupied'}`}><span />{available.has(resource.id) ? 'Dostępne' : 'Zajęte'}</span></div><div className="card-title-row"><h3>{resource.name}</h3></div><p className="card-location"><MapPin size={14} />{resource.location}</p><div className="card-bottom"><span className="muted small">{resource.capacity} {resource.capacity === 1 ? 'osoba' : 'osób'}</span><button className={`book-button ${!available.has(resource.id) ? 'unavailable' : ''}`} disabled={!available.has(resource.id) || sessionLoading} onClick={() => user ? setBooking({ resource }) : setLoginOpen(true)}>{available.has(resource.id) ? 'Zarezerwuj' : 'Niedostępne'}{available.has(resource.id) && <ArrowRight size={16} />}</button></div></div></article>)}</div>}
+            <div className="results-toolbar"><span className="result-count">{loading ? 'Sprawdzamy dostępność…' : loadError ? 'Dostępność chwilowo niedostępna' : <><strong>{filtered.length}</strong> {filtered.length === 1 ? 'miejsce' : 'miejsc'} <span>· {formatDate(`${filter.date}T12:00:00`)} · {filter.start}–{filter.end}</span></>}</span><div className="results-actions"><label className="inline-search"><Search size={16} /><input aria-label="Szukaj miejsca" placeholder="Szukaj miejsca…" value={query} onChange={event => setQuery(event.target.value)} /></label>{catalogView === 'list' && <label className="sort-select"><ArrowDown size={14} /><select aria-label="Sortowanie" value={sort} onChange={event => setSort(event.target.value)}><option value="available">Dostępne najpierw</option><option value="name">Nazwa A–Z</option><option value="capacity">Najwięcej osób</option></select></label>}</div></div>
+            {showMap && <OfficeMap
+              resources={resources}
+              matchingIds={new Set(filtered.map(resource => resource.id))}
+              available={loading || loadError ? null : available}
+              sessionLoading={sessionLoading}
+              onSelect={selectResource}
+            />}
+            {loading ? !showMap && <div className="resource-grid" aria-busy="true" aria-label="Ładowanie miejsc">{[0, 1, 2, 3, 4, 5].map(i => <div key={i} className="skeleton-card"><div /><span /><span /></div>)}</div> : loadError ? <EmptyState icon={<CircleAlert size={28} />} title="Nie możemy sprawdzić dostępności" text={loadError} action={<button className="button secondary" onClick={() => setRevision(value => value + 1)}><RefreshCw size={16} />Spróbuj ponownie</button>} /> : showMap ? null : filtered.length === 0 ? <EmptyState icon={<Search size={28} />} title="Nie znaleźliśmy takiego miejsca" text="Zmień filtry lub wybierz inny termin." action={<button className="button secondary" onClick={() => { setType('all'); setLocation('all'); setOnlyAvailable(false); setQuery(''); }}>Wyczyść filtry</button>} /> : <div className="resource-grid">{filtered.map(resource => <article className="resource-card" key={resource.id}><div className="card-content"><div className="card-meta"><span className="resource-type">{resource.type === 'room' ? 'Sala konferencyjna' : 'Biurko'}</span><span className={`availability-badge ${available.has(resource.id) ? 'free' : 'occupied'}`}><span />{available.has(resource.id) ? 'Dostępne' : 'Zajęte'}</span></div><div className="card-title-row"><h3>{resource.name}</h3></div><p className="card-location"><MapPin size={14} />{resource.location}</p><div className="card-bottom"><span className="muted small">{resource.capacity} {resource.capacity === 1 ? 'osoba' : 'osób'}</span><button className={`book-button ${!available.has(resource.id) ? 'unavailable' : ''}`} disabled={!available.has(resource.id) || sessionLoading} onClick={() => selectResource(resource)}>{available.has(resource.id) ? 'Zarezerwuj' : 'Niedostępne'}{available.has(resource.id) && <ArrowRight size={16} />}</button></div></div></article>)}</div>}
           </section>
         </> : view === 'reservations' ? <>
           <div className="page-heading"><h1>Moje rezerwacje</h1><p className="muted">Przeglądaj, zmieniaj i anuluj swoje rezerwacje.</p></div>
@@ -143,7 +164,7 @@ export default function App() {
         </> : user?.role === 'admin' && token ? <><div className="page-heading"><h1>Administracja</h1><p className="muted">Zarządzaj pracownikami i miejscami w biurze.</p></div><AdminPanel token={token} onSaved={saved} /></> : null}
       </main>
     </div>
-    {loginOpen && <LoginModal onClose={() => setLoginOpen(false)} onLogin={(newToken, newUser) => { sessionStorage.setItem('mydesk-token', newToken); setToken(newToken); setUser(newUser); setLoginOpen(false); setToast(`Zalogowano jako ${newUser.name}.`); }} />}
+    {loginOpen && <LoginModal onClose={() => { setLoginOpen(false); setBooking(null); }} onLogin={(newToken, newUser) => { sessionStorage.setItem('mydesk-token', newToken); setToken(newToken); setUser(newUser); setLoginOpen(false); setToast(`Zalogowano jako ${newUser.name}.`); }} />}
     {booking && token && user && <BookingModal {...booking} resources={resources} filter={filter} token={token} onClose={() => setBooking(null)} onSaved={saved} />}
     {cancel && token && user && <CancelModal reservation={cancel} token={token} onClose={() => setCancel(null)} onSaved={saved} />}
     {helpOpen && <Modal title="Jak zarezerwować miejsce?" onClose={() => setHelpOpen(false)}><div className="help-steps">{[{ icon: CalendarDays, title: 'Wybierz termin', text: 'Podaj dzień i godziny wizyty. Dostępność jest sprawdzana dla całego przedziału.' }, { icon: SlidersHorizontal, title: 'Wybierz miejsce', text: 'Przeglądaj biurka i sale. Filtruj lokalizację i wybierz miejsce dla siebie lub zespołu.' }, { icon: CalendarCheck2, title: 'Zarezerwuj i gotowe', text: 'Zaloguj się, potwierdź termin lub ustaw cykl. Rezerwacje możesz edytować i anulować przed rozpoczęciem.' }].map((step, i) => <div key={step.title}><span className="help-step-icon"><step.icon size={21} /></span><div><span className="eyebrow">KROK 0{i + 1}</span><h3>{step.title}</h3><p>{step.text}</p></div></div>)}</div><button className="button primary full-width" onClick={() => { setHelpOpen(false); navigate('spaces'); }}>Przeglądaj miejsca<ArrowRight size={16} /></button></Modal>}
