@@ -2,7 +2,8 @@
 set -eu
 
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-cd "$SCRIPT_DIR/frontend"
+PROJECT_DIR=$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)
+cd "$PROJECT_DIR/frontend"
 
 if ! command -v npm >/dev/null 2>&1; then
     printf '%s\n' 'Install Node.js 22.12+ with npm first.' >&2

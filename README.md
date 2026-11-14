@@ -153,22 +153,29 @@ curl -X POST http://127.0.0.1:8000/api/reservations/recurring \
 
 ## Testy
 
+Backend korzysta z `unittest`, a frontend z Playwright. Testy backendu są
+podzielone na jednostkowe (`test_schema_unit.py`, `test_security_unit.py`),
+integracyjne API, test endpointu `/health` oraz testy ograniczeń bazy danych.
+Testy frontendowe
+uruchamiają aplikację Vite z kontrolowanym serwerem i mockowanymi odpowiedziami
+API.
+
 Najprościej uruchomić wszystkie testy:
 
 ```sh
-sh ./test-all.sh
+sh ./tests/test-all.sh
 ```
 
 Tylko backend:
 
 ```sh
-sh ./test-app.sh
+sh ./tests/test-app.sh
 ```
 
 Tylko frontend:
 
 ```sh
-sh ./test-frontend.sh
+sh ./tests/test-frontend.sh
 ```
 
 Testy integracyjne frontend + działający backend:
