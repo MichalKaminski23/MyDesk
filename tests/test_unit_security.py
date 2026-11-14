@@ -15,7 +15,7 @@ from app.security import (
 
 
 class PasswordSecurityUnitTests(TestCase):
-    def test_password_hash_can_be_verified(self):
+    def test_unit_security_password_hash_valid_password_is_verified(self):
         password = "Secure123!"
 
         password_hash = get_password_hash(password)
@@ -23,14 +23,14 @@ class PasswordSecurityUnitTests(TestCase):
         self.assertNotEqual(password_hash, password)
         self.assertTrue(verify_password(password, password_hash))
 
-    def test_password_hash_rejects_different_password(self):
+    def test_unit_security_password_hash_different_password_is_rejected(self):
         password_hash = get_password_hash("Secure123!")
 
         self.assertFalse(verify_password("WrongPassword!", password_hash))
 
 
 class TokenSecurityUnitTests(TestCase):
-    def test_access_token_contains_subject_and_role(self):
+    def test_unit_security_access_token_subject_and_role_are_preserved(self):
         token = create_access_token({"sub": "employee@example.com", "role": "employee"})
 
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
@@ -39,7 +39,7 @@ class TokenSecurityUnitTests(TestCase):
         self.assertEqual(payload["role"], "employee")
         self.assertIn("exp", payload)
 
-    def test_access_token_uses_requested_expiration(self):
+    def test_unit_security_access_token_requested_expiration_is_applied(self):
         token = create_access_token(
             {"sub": "employee@example.com"},
             expires_delta=timedelta(minutes=10),
@@ -52,12 +52,12 @@ class TokenSecurityUnitTests(TestCase):
 
 
 class AuthorizationSecurityUnitTests(TestCase):
-    def test_require_admin_returns_admin_user(self):
+    def test_unit_security_require_admin_admin_user_is_accepted(self):
         admin = User(role="admin")
 
         self.assertIs(require_admin(admin), admin)
 
-    def test_require_admin_rejects_employee(self):
+    def test_unit_security_require_admin_employee_is_rejected(self):
         employee = User(role="employee")
 
         with self.assertRaises(HTTPException) as context:

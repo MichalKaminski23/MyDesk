@@ -8,7 +8,7 @@ from app.models import Resource, User
 from app.security import create_access_token
 
 
-class ReservationsAPITests(SQLiteTestCase):
+class ReservationsAPIIntegrationTests(SQLiteTestCase):
     def setUp(self):
         super().setUp()
         user = User(
@@ -30,27 +30,27 @@ class ReservationsAPITests(SQLiteTestCase):
             token = create_access_token({"sub": user.email})
         self.auth = {"Authorization": f"Bearer {token}"}
 
-        def test_db():
+        def override_get_db():
             with self.session() as db:
                 yield db
 
         self.addCleanup(setattr, app, "dependency_overrides", app.dependency_overrides)
-        app.dependency_overrides = {**app.dependency_overrides, get_db: test_db}
+        app.dependency_overrides = {**app.dependency_overrides, get_db: override_get_db}
         self.client = TestClient(app)
         self.addCleanup(self.client.close)
 
-    def test_reservations_require_authentication(self):
+    def test_integration_security_list_reservations_without_authentication_returns_401(self):
         response = self.client.get("/api/reservations")
         self.assertEqual(response.status_code, 401, response.text)
         self.assertEqual(response.headers["WWW-Authenticate"], "Bearer")
 
-    def test_invalid_time_range_is_rejected(self):
+    def test_integration_api_create_reservation_invalid_time_range_returns_422(self):
         slot = {**self.slot, "end_time": self.slot["start_time"]}
         response = self.client.post("/api/reservations", json=slot, headers=self.auth)
         self.assertEqual(response.status_code, 422, response.text)
         self.assertEqual(self.client.get("/api/reservations", headers=self.auth).json(), [])
 
-    def test_reservation_blocks_availability_until_cancelled(self):
+    def test_integration_api_reservation_lifecycle_updates_conflict_and_availability(self):
         created = self.client.post("/api/reservations", json=self.slot, headers=self.auth)
         self.assertEqual(created.status_code, 201, created.text)
         reservation_id = created.json()["id"]

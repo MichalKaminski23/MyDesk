@@ -7,7 +7,7 @@ from tests.database import SQLiteTestCase
 from app.models import Reservation, Resource, User
 
 
-class DatabaseConstraintTests(SQLiteTestCase):
+class DatabaseConstraintIntegrationTests(SQLiteTestCase):
     def setUp(self):
         super().setUp()
         self.db = self.session()
@@ -30,26 +30,26 @@ class DatabaseConstraintTests(SQLiteTestCase):
             self.db.flush()
         self.db.rollback()
 
-    def test_user_email_must_be_unique_and_present(self):
+    def test_integration_database_user_email_duplicate_and_missing_values_are_rejected(self):
         self.assert_rejected(User(**self.user_data), r"UNIQUE constraint failed: users\.email")
         self.assert_rejected(
             User(**{**self.user_data, "email": None}),
             r"NOT NULL constraint failed: users\.email",
         )
 
-    def test_resource_name_must_be_unique(self):
+    def test_integration_database_resource_duplicate_name_is_rejected(self):
         self.assert_rejected(
             Resource(name=self.desk.name, type="room", capacity=4),
             r"UNIQUE constraint failed: resources\.name",
         )
 
-    def test_resource_capacity_must_be_positive(self):
+    def test_integration_database_resource_non_positive_capacity_is_rejected(self):
         self.assert_rejected(
             Resource(name="Room B1", type="room", capacity=0),
             "ck_resource_capacity",
         )
 
-    def test_reservation_end_must_follow_start(self):
+    def test_integration_database_reservation_invalid_time_order_is_rejected(self):
         start = datetime(2099, 1, 5, 9)
         self.assert_rejected(
             Reservation(user_id=self.user.id, resource_id=self.desk.id, start_time=start, end_time=start),
