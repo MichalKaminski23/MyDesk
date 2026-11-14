@@ -1,10 +1,12 @@
+from datetime import datetime, timedelta
+
 from fastapi.testclient import TestClient
 
 from tests.database import SQLiteTestCase
 
 from app.database import get_db
 from app.main import app
-from app.models import Resource, User
+from app.models import Reservation, Resource, User
 from app.security import create_access_token
 
 
@@ -19,6 +21,8 @@ class ReservationsAPIIntegrationTests(SQLiteTestCase):
             phone_number="123456789",
         )
         desk = Resource(name="Desk A1", type="desk", capacity=1)
+        self.user = user
+        self.desk = desk
         with self.session() as db:
             db.add_all([user, desk])
             db.commit()
@@ -76,3 +80,25 @@ class ReservationsAPIIntegrationTests(SQLiteTestCase):
         available = self.client.get("/api/resources/availability", params=params)
         self.assertEqual(available.status_code, 200, available.text)
         self.assertEqual([resource["id"] for resource in available.json()], [self.slot["resource_id"]])
+
+    def test_integration_api_started_reservation_cannot_be_updated(self):
+        now = datetime.now()
+        with self.session() as db:
+            reservation = Reservation(
+                user_id=self.user.id,
+                resource_id=self.desk.id,
+                start_time=now - timedelta(hours=1),
+                end_time=now + timedelta(hours=1),
+                status="active",
+            )
+            db.add(reservation)
+            db.commit()
+            reservation_id = reservation.id
+
+        response = self.client.put(
+            f"/api/reservations/{reservation_id}",
+            json={"start_time": "2099-01-05T10:00:00"},
+            headers=self.auth,
+        )
+
+        self.assertEqual(response.status_code, 409, response.text)

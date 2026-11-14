@@ -7,11 +7,43 @@ from jose import jwt
 from app.config import settings
 from app.models.user_model import User
 from app.security import (
+    LoginRateLimiter,
     create_access_token,
     get_password_hash,
     require_admin,
     verify_password,
 )
+
+
+class LoginRateLimiterUnitTests(TestCase):
+    def test_unit_security_login_rate_limit_rejects_excessive_failures(self):
+        limiter = LoginRateLimiter(max_attempts=2, window_seconds=60)
+
+        for _ in range(2):
+            limiter.check("127.0.0.1", "employee@example.com")
+            limiter.record_failure("127.0.0.1", "employee@example.com")
+
+        with self.assertRaises(HTTPException) as context:
+            limiter.check("127.0.0.1", "employee@example.com")
+
+        self.assertEqual(context.exception.status_code, 429)
+
+    def test_unit_security_login_rate_limit_resets_after_success(self):
+        limiter = LoginRateLimiter(max_attempts=1, window_seconds=60)
+        limiter.record_failure("127.0.0.1", "employee@example.com")
+        limiter.reset("127.0.0.1", "employee@example.com")
+
+        limiter.check("127.0.0.1", "employee@example.com")
+
+    def test_unit_security_login_rate_limit_applies_to_ip_across_accounts(self):
+        limiter = LoginRateLimiter(max_attempts=2, window_seconds=60)
+        limiter.record_failure("127.0.0.1", "employee@example.com")
+        limiter.record_failure("127.0.0.1", "admin@example.com")
+
+        with self.assertRaises(HTTPException) as context:
+            limiter.check("127.0.0.1", "other@example.com")
+
+        self.assertEqual(context.exception.status_code, 429)
 
 
 class PasswordSecurityUnitTests(TestCase):

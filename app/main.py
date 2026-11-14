@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
-from app.database import engine, Base
+from app.database import Base, engine, ensure_postgresql_reservation_constraints
 from app.config import settings
 import app.models
 from app.routers import auth_router, reservations_router, resources_router, user_router
@@ -11,6 +11,7 @@ from app.seed import seed_data
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
+    ensure_postgresql_reservation_constraints()
     seed_data()
     yield
 

@@ -1,4 +1,7 @@
 from datetime import datetime, timedelta, timezone
+from collections import deque
+from threading import Lock
+from time import monotonic
 from typing import Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -11,6 +14,47 @@ from app.models.user_model import User
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+
+
+class LoginRateLimiter:
+    def __init__(self, max_attempts: int = 5, window_seconds: int = 60):
+        self.max_attempts = max_attempts
+        self.window_seconds = window_seconds
+        self._attempts: dict[tuple[str, str], deque[float]] = {}
+        self._lock = Lock()
+
+    def _active_attempts(self, key: tuple[str, str], now: float) -> deque[float]:
+        attempts = self._attempts.setdefault(key, deque())
+        while attempts and now - attempts[0] >= self.window_seconds:
+            attempts.popleft()
+        return attempts
+
+    def check(self, client_host: str, account: str) -> None:
+        now = monotonic()
+        keys = (("ip", client_host), ("account", account.strip().lower()))
+        with self._lock:
+            if any(len(self._active_attempts(key, now)) >= self.max_attempts for key in keys):
+                raise HTTPException(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    detail="Too many login attempts. Try again later.",
+                    headers={"Retry-After": str(self.window_seconds)},
+                )
+
+    def record_failure(self, client_host: str, account: str) -> None:
+        now = monotonic()
+        keys = (("ip", client_host), ("account", account.strip().lower()))
+        with self._lock:
+            for key in keys:
+                self._active_attempts(key, now).append(now)
+
+    def reset(self, client_host: str, account: str) -> None:
+        keys = (("ip", client_host), ("account", account.strip().lower()))
+        with self._lock:
+            for key in keys:
+                self._attempts.pop(key, None)
+
+
+login_rate_limiter = LoginRateLimiter()
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:

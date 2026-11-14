@@ -45,6 +45,16 @@ class UserSchemaUnitTests(TestCase):
                 password="short",
             )
 
+    def test_unit_schema_user_create_weak_password_is_rejected(self):
+        with self.assertRaises(ValidationError):
+            UserCreate(
+                email="anna.nowak@example.com",
+                name="Anna",
+                surname="Nowak",
+                phone_number="123456789",
+                password="passwordonly",
+            )
+
     def test_unit_schema_user_create_unknown_fields_are_rejected(self):
         with self.assertRaises(ValidationError):
             UserCreate(
