@@ -57,8 +57,13 @@ try {
   await page.getByRole('button', { name: 'Zaloguj się', exact: true }).first().click();
   await page.getByLabel('Służbowy adres e-mail').fill('qa@mydesk.pl');
   await page.getByLabel('Hasło', { exact: true }).fill('Integration123!');
+  const profileResponse = page.waitForResponse(response => response.url().endsWith('/api/users/me'));
   await page.getByRole('dialog').getByRole('button', { name: 'Zaloguj się' }).click();
-  await expect(page.getByText('Cześć, Pracownik!', { exact: true })).toBeVisible();
+  const profile = await profileResponse;
+  expect(profile.status()).toBe(200);
+  const employee = await profile.json();
+  expect(employee.email).toBe('qa@mydesk.pl');
+  await expect(page.getByText(`Cześć, ${employee.name}!`, { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Zarezerwuj', exact: true }).first().click();
   const bookedName = await page.locator('.booking-summary strong').innerText();
   await page.getByLabel('Data rezerwacji').fill('2099-11-05');
