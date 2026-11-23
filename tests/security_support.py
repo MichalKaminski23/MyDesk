@@ -6,7 +6,7 @@ from pathlib import Path
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from tests.database import SQLiteTestCase
+from tests.database_support import SQLiteTestCase
 from app.database import Base, get_db
 from app.main import app
 from app.models import User, Resource
@@ -54,7 +54,6 @@ class SecurityAPITestCase(SQLiteTestCase):
         limiter_patch = patch("app.routers.auth_router.login_rate_limiter", LoginRateLimiter())
         limiter_patch.start()
         self.addCleanup(limiter_patch.stop)
-        # No lifespan: do not seed or initialize the configured application database.
         self.client = TestClient(app)
         self.addCleanup(self.client.close)
 

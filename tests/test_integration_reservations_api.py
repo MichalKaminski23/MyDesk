@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 from fastapi.testclient import TestClient
 
-from tests.database import SQLiteTestCase
+from tests.database_support import SQLiteTestCase
 
 from app.database import get_db
 from app.main import app
@@ -103,7 +103,7 @@ class ReservationsAPIIntegrationTests(SQLiteTestCase):
 
         self.assertEqual(response.status_code, 409, response.text)
 
-    def test_login_token_can_create_and_list_reservations(self):
+    def test_integration_api_login_token_can_create_and_list_reservations(self):
         password = "Pracownik123!"
         with self.session() as db:
             db.get(User, self.user.id).hashed_password = get_password_hash(password)
@@ -127,7 +127,7 @@ class ReservationsAPIIntegrationTests(SQLiteTestCase):
             self.assertEqual(stored.user_id, self.user.id)
             self.assertEqual(stored.resource_id, self.desk.id)
 
-    def test_adjacent_reservations_do_not_conflict(self):
+    def test_integration_api_adjacent_reservations_do_not_conflict(self):
         first = self.client.post("/api/reservations", json=self.slot, headers=self.auth)
         self.assertEqual(first.status_code, 201, first.text)
         next_slot = {
@@ -146,7 +146,7 @@ class ReservationsAPIIntegrationTests(SQLiteTestCase):
         with self.session() as db:
             self.assertEqual(db.query(Reservation).count(), 2)
 
-    def test_moving_reservation_updates_both_resources_availability(self):
+    def test_integration_api_moving_reservation_updates_both_resources_availability(self):
         with self.session() as db:
             other = Resource(name="Desk A2", type="desk", capacity=1)
             db.add(other)
@@ -172,7 +172,7 @@ class ReservationsAPIIntegrationTests(SQLiteTestCase):
         with self.session() as db:
             self.assertEqual(db.get(Reservation, reservation_id).resource_id, other_id)
 
-    def test_conflicting_update_preserves_original_reservation(self):
+    def test_integration_api_conflicting_update_preserves_original_reservation(self):
         first = self.client.post("/api/reservations", json=self.slot, headers=self.auth)
         self.assertEqual(first.status_code, 201, first.text)
         later_slot = {
@@ -194,7 +194,7 @@ class ReservationsAPIIntegrationTests(SQLiteTestCase):
             self.assertEqual(stored.end_time, datetime.fromisoformat(later_slot["end_time"]))
             self.assertEqual(db.query(Reservation).count(), 2)
 
-    def test_recurring_reservations_include_last_matching_day(self):
+    def test_integration_api_recurring_reservations_include_last_matching_day(self):
         weekday = datetime.fromisoformat(self.slot["start_time"]).weekday()
         response = self.client.post("/api/reservations/recurring", headers=self.auth, json={
             **self.slot,
@@ -223,7 +223,7 @@ class ReservationsAPIIntegrationTests(SQLiteTestCase):
                 expected,
             )
 
-    def test_recurring_conflict_does_not_save_partial_series(self):
+    def test_integration_api_recurring_conflict_does_not_save_partial_series(self):
         existing = self.client.post("/api/reservations", headers=self.auth, json={
             **self.slot,
             "start_time": "2099-01-12T09:00:00",

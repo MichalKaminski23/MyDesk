@@ -9,7 +9,7 @@ from tests.security_support import SecurityAPITestCase
 
 
 class DataSecurityTests(SecurityAPITestCase):
-    def test_sec07_api_hides_passwords_and_database_stores_bcrypt(self):
+    def test_security_data_api_hides_passwords_and_database_stores_bcrypt(self):
         profile = self.client.get("/api/users/me", headers=self.headers[0])
         users = self.client.get("/api/users", headers=self.headers[2])
         self.assertEqual(profile.status_code, 200, profile.text)
@@ -18,7 +18,6 @@ class DataSecurityTests(SecurityAPITestCase):
             self.assertNotIn("password", record)
             self.assertNotIn("hashed_password", record)
             self.assertNotIn(self.password, str(record))
-        # Exercise account creation rather than only inspecting fixture hashes.
         response = self.client.post("/api/auth/register", headers=self.headers[2], json={
             "email": "new@example.com", "password": self.password,
             "name": "Nowy", "surname": "Testowy", "phone_number": "123456789",
@@ -31,7 +30,7 @@ class DataSecurityTests(SecurityAPITestCase):
             self.assertTrue(stored.startswith(("$2a$", "$2b$", "$2y$")))
             self.assertTrue(verify_password(self.password, stored))
 
-    def test_sec08_search_does_not_execute_sql_injection(self):
+    def test_security_data_search_does_not_execute_sql_injection(self):
         normal = self.client.get("/api/users", headers=self.headers[2], params={"search": "anna"})
         self.assertEqual(normal.status_code, 200, normal.text)
         self.assertEqual([u["email"] for u in normal.json()], ["anna@example.com"])
@@ -44,16 +43,14 @@ class DataSecurityTests(SecurityAPITestCase):
 
 
 class ConcurrentReservationSecurityTests(SecurityAPITestCase):
-    # Separate connections are required: StaticPool's single connection cannot model this race.
     file_database = True
 
-    def test_sec09_concurrent_requests_create_only_one_active_reservation(self):
+    def test_security_data_concurrent_requests_create_only_one_active_reservation(self):
         barrier = Barrier(2, timeout=10)
         find_conflict = reservation_service._find_conflict
 
         def synchronized_conflict_check(*args, **kwargs):
             result = find_conflict(*args, **kwargs)
-            # Both actual database reads complete before either request can write.
             barrier.wait()
             return result
 

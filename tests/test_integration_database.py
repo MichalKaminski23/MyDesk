@@ -2,7 +2,7 @@ from datetime import datetime
 
 from sqlalchemy.exc import IntegrityError
 
-from tests.database import SQLiteTestCase
+from tests.database_support import SQLiteTestCase
 
 from app.models import Reservation, Resource, User
 from app.database import Base
@@ -65,14 +65,14 @@ class DatabaseConstraintIntegrationTests(SQLiteTestCase):
             "status": "active", **overrides,
         })
 
-    def test_sqlite_overlap_constraint_survives_repeated_schema_initialization(self):
+    def test_integration_database_sqlite_overlap_constraint_survives_repeated_schema_initialization(self):
         Base.metadata.create_all(self.engine)
         self.db.add(self.reservation(9, 11))
         self.db.commit()
         self.assert_rejected(self.reservation(10, 12), "Resource is already booked")
         self.assertEqual(self.db.query(Reservation).count(), 1)
 
-    def test_sqlite_update_cannot_overlap_another_reservation(self):
+    def test_integration_database_sqlite_update_cannot_overlap_another_reservation(self):
         first, second = self.reservation(9, 11), self.reservation(12, 14)
         self.db.add_all([first, second])
         self.db.commit()
@@ -82,7 +82,7 @@ class DatabaseConstraintIntegrationTests(SQLiteTestCase):
         self.db.rollback()
         self.assertEqual(second.start_time, datetime(2099, 1, 5, 12))
 
-    def test_sqlite_allows_adjacent_cancelled_and_other_resource_reservations(self):
+    def test_integration_database_sqlite_allows_adjacent_cancelled_and_other_resource_reservations(self):
         other = Resource(name="Desk B1", type="desk", capacity=1)
         self.db.add(other)
         self.db.commit()
@@ -94,7 +94,7 @@ class DatabaseConstraintIntegrationTests(SQLiteTestCase):
         self.db.commit()
         self.assertEqual(self.db.query(Reservation).count(), 4)
 
-    def test_sqlite_cannot_reactivate_cancelled_conflicting_reservation(self):
+    def test_integration_database_sqlite_cannot_reactivate_cancelled_conflicting_reservation(self):
         cancelled = self.reservation(10, 12, status="cancelled")
         self.db.add_all([self.reservation(9, 11), cancelled])
         self.db.commit()
