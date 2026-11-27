@@ -214,6 +214,13 @@ npm ci
 npm test
 ```
 
+### Ciągła integracja (CI)
+
+Projekt używa GitHub Actions. 
+Workflow znajduje się w [`.github/workflows/run-tests-ci.yml`](.github/workflows/run-tests-ci.yml) i uruchamia się automatycznie po każdym `push` oraz dla `pull requestów`. 
+Na runnerze Ubuntu przygotowuje Python 3.12, Node.js 22.12.0 oraz przeglądarkę Chromium wymaganą przez Playwright, a następnie wykonuje `sh ./tests/test-all.sh`, który uruchamia testy backendu i frontendu. 
+Nieudany test oznacza nieudany workflow i jest widoczny w GitHub Actions.
+
 ## Baza danych
 
 Lokalnie używany jest SQLite (`mydesk.db`). Aby użyć PostgreSQL, ustaw w `.env`:
